@@ -7,6 +7,12 @@
 If issues are encountered, please report them on
 the [GitHub repository](https://github.com/Renegade-Master/steamcmd-minimal/issues/new/choose)
 
+## Badges
+
+![Docker Image Version (latest by date)](https://img.shields.io/docker/v/renegademaster/steamcmd-minimal?label=Latest%20Version)
+![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/renegademaster/steamcmd-minimal?label=Image%20Size)
+![Docker Pulls](https://img.shields.io/docker/pulls/renegademaster/steamcmd-minimal?label=Docker%20Pull%20Count)
+
 ## Description
 
 Docker image containing the latest Steam CMD Linux Binary. Use as a base for other images.  
