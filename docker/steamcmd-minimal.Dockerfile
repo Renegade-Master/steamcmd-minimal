@@ -11,7 +11,7 @@ ARG GROUP_ID=1000
 # Download a small base image to start with
 FROM ubuntu:impish as downloader
 
-# Install Steam dependencies
+# Install dependencies
 RUN dpkg --add-architecture i386 \
     && apt-get update && apt-get autoremove -y \
     && apt-get install -y \
@@ -26,7 +26,7 @@ RUN wget "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz
     && rm steamcmd_linux.tar.gz
 
 # Start again with a small base image
-FROM ubuntu:impish as installer
+FROM alpine:3.15.0 as installer
 
 # Copy the User and Group IDs from the previous stage
 ARG USER_ID
@@ -43,14 +43,11 @@ LABEL com.renegademaster.steamcmd-minimal.authors="Renegade-Master" \
 # Set local working directory
 WORKDIR /home/steam
 
-# Install Steam dependencies, and trim image bloat
-RUN apt-get update && apt-get autoremove -y \
-    && apt-get install -y --no-install-recommends \
-        lib32stdc++6 ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy the Steam installation from the previous build stage
 COPY --from=downloader /app /home/steam
+
+# Copy Certs
+COPY --from=downloader /etc/ssl/certs /etc/ssl/certs
 
 # Copy only the essential libraries required for Steam to function
 COPY --from=downloader [ \
@@ -65,7 +62,7 @@ COPY --from=downloader [ \
 RUN mkdir -p /home/steam/.steam/sdk64 \
     && ln -s /usr/lib/i386-linux-gnu/libSDL2-2.0.so.0.14.0 /usr/lib/i386-linux-gnu/libSDL2-2.0.so.0 \
     && ln -s /home/steam/linux64/steamclient.so /home/steam/.steam/sdk64/steamclient.so \
-    && useradd -u ${USER_ID} -m -d /home/steam steam \
+    && adduser --disabled-password -u ${USER_ID} -h /home/steam steam \
     && chown -R ${USER_ID}:${GROUP_ID} /home/steam
 
 # Switch to the Steam User
