@@ -1,3 +1,19 @@
+#   SteamCMD Minimal Docker Image.
+#   Copyright (C) 2021-2022 Renegade-Master [renegade.master.dev@protonmail.com]
+#
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #######################################################################
 #   Author: Renegade-Master
 #   Description: Base image for a Steam CMD minimal install.
@@ -39,6 +55,8 @@ ENV STEAM_PATH=${STEAM_DEFAULT_PATH}
 LABEL com.renegademaster.steamcmd-minimal.authors="Renegade-Master" \
     com.renegademaster.steamcmd-minimal.source-repository="https://github.com/Renegade-Master/steamcmd-minimal" \
     com.renegademaster.steamcmd-minimal.image-repository="https://hub.docker.com/repository/docker/renegademaster/steamcmd-minimal"
+
+COPY --from=outdead/rcon:0.10.2 /rcon /bin/rcon
 
 # Set local working directory
 WORKDIR /home/steam
