@@ -23,7 +23,9 @@ Built from scratch to be the smallest Steam CMD Docker image around!
 Source:
 
 - [GitHub](https://github.com/Renegade-Master/steamcmd-minimal)
-- [DockerHub](https://hub.docker.com/repository/docker/renegademaster/steamcmd-minimal)
+- [GitHub Packages](https://github.com/users/Renegade-Master/packages/container/package/steamcmd-minimal)
+- [DockerHub](https://hub.docker.com/r/renegademaster/steamcmd-minimal)
+- [Red Hat Quay](https://quay.io/repository/renegade_master/steamcmd-minimal)
 
 Resource links:
 
