@@ -64,10 +64,10 @@ jobs:
       - name: ReTag Image
         run: |
           buildah tag ghcr.io/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest
+
           buildah tag ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest docker.io/${{ steps.variables.outputs.dkimagepath }}:${{ github.event.inputs.tag }}
           buildah tag ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest quay.io/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }}
 
-          buildah tag ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest
           buildah tag ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest docker.io/${{ steps.variables.outputs.dkimagepath }}:latest
           buildah tag ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest quay.io/${{ steps.variables.outputs.qyimagepath }}:latest
 
