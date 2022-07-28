@@ -21,7 +21,7 @@
 #######################################################################
 
 # Base Image
-ARG BASE_IMAGE="ubuntu:kinetic-20220602"
+ARG BASE_IMAGE="docker.io/ubuntu:kinetic-20220602"
 
 # Download a small base image to start with
 FROM ${BASE_IMAGE} as downloader
