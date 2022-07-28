@@ -1,0 +1,92 @@
+name: Push New Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The semantic version to assign to the new Tag"
+        required: true
+        type: string
+      dryrun:
+        description: "Run the action without pushing anything"
+        required: true
+        type: boolean
+        default: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  tag_repo:
+    name: "Add a Tag to the Repo"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create a new Tag
+        run: |
+          git tag -a v${{ github.event.inputs.tag }} HEAD -m "Renegade-Master SteamCMD Minimal: v${{ github.event.inputs.tag }}"
+
+      - name: Push new Tag
+        run: |
+          if [[ "${{ github.event.inputs.dryrun }}" == "true" ]]; then
+            git push --tags
+          else
+            printf "DryRun. Not pushing Git Tag\n"
+          fi
+
+  build_and_push_image:
+    name: "Build the new Image"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set Variables
+        id: variables
+        run: |
+          echo "::set-output name=imagepath::renegademaster/steamcmd-minimal"
+          echo "::set-output name=datetime::$(date +%Y%m%dT%H%M%SZ)"
+
+      - name: Buildah Build
+        run: |
+          buildah bud \
+          --file docker/steamcmd-minimal.Dockerfile \
+          --tag ghcr.io/renegademaster/steamcmd-minimal:${{ github.event.inputs.tag }} \
+          .
+
+      - name: ReTag Image
+        run: |
+          buildah tag ghcr.io/${{ steps.variables.outputs.imagepath }}:${{ github.event.inputs.tag }} ghcr.io/${{ steps.variables.outputs.imagepath }}:latest
+          buildah tag ghcr.io/${{ steps.variables.outputs.imagepath }}:latest docker.io/${{ steps.variables.outputs.imagepath }}:${{ github.event.inputs.tag }}
+          buildah tag ghcr.io/${{ steps.variables.outputs.imagepath }}:latest quay.io/${{ steps.variables.outputs.imagepath }}:${{ github.event.inputs.tag }}
+
+          buildah tag ghcr.io/${{ steps.variables.outputs.imagepath }}:latest ghcr.io/${{ steps.variables.outputs.imagepath }}:latest
+          buildah tag ghcr.io/${{ steps.variables.outputs.imagepath }}:latest docker.io/${{ steps.variables.outputs.imagepath }}:latest
+          buildah tag ghcr.io/${{ steps.variables.outputs.imagepath }}:latest quay.io/${{ steps.variables.outputs.imagepath }}:latest
+
+      - name: Push new Image Tags
+        run: |
+          if [[ "${{ github.event.inputs.dryrun }}" == "true" ]]; then
+            printf "Pushing Image Tags\n"
+
+            buildah push ghcr.io/${{ steps.variables.outputs.imagepath }}:${{ github.event.inputs.tag }}
+            buildah push ghcr.io/${{ steps.variables.outputs.imagepath }}:latest
+
+            buildah push docker.io/${{ steps.variables.outputs.imagepath }}:${{ github.event.inputs.tag }}
+            buildah push docker.io/${{ steps.variables.outputs.imagepath }}:latest
+
+            buildah push quay.io/${{ steps.variables.outputs.imagepath }}:${{ github.event.inputs.tag }}
+            buildah push quay.io/${{ steps.variables.outputs.imagepath }}:latest
+          else
+            printf "DryRun. Not pushing Git Tags. Printing commands...\n"          
+
+            printf "buildah push ghcr.io/${{ steps.variables.outputs.imagepath }}:${{ github.event.inputs.tag }}\n"
+            printf "buildah push ghcr.io/${{ steps.variables.outputs.imagepath }}:latest\n"
+
+            printf "buildah push docker.io/${{ steps.variables.outputs.imagepath }}:${{ github.event.inputs.tag }}\n"
+            printf "buildah push docker.io/${{ steps.variables.outputs.imagepath }}:latest\n"
+
+            printf "buildah push quay.io/${{ steps.variables.outputs.imagepath }}:${{ github.event.inputs.tag }}\n"
+            printf "buildah push quay.io/${{ steps.variables.outputs.imagepath }}:latest\n"
+          fi
