@@ -24,17 +24,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Create a new Tag
-        run: |
-          git tag -a v${{ github.event.inputs.tag }} HEAD -m "Renegade-Master SteamCMD Minimal: v${{ github.event.inputs.tag }}"
-
-      - name: Push new Tag
-        run: |
-          if [[ "${{ github.event.inputs.dryrun }}" == "true" ]]; then
-            git push --tags
-          else
-            printf "DryRun. Not pushing Git Tag\n"
-          fi
+      - name: GitHub Tag
+        uses: mathieudutour/github-tag-action@v6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_tag: ${{ github.event.inputs.tag }}
+          create_annotated_tag: true
+          dry_run: ${{ github.event.inputs.dryrun }}
 
   build_and_push_image:
     name: "Build the new Image"
@@ -67,7 +63,7 @@ jobs:
 
       - name: Push new Image Tags
         run: |
-          if [[ "${{ github.event.inputs.dryrun }}" == "true" ]]; then
+          if [[ "${{ github.event.inputs.dryrun }}" == "false" ]]; then
             printf "Pushing Image Tags\n"
 
             buildah push ghcr.io/${{ steps.variables.outputs.imagepath }}:${{ github.event.inputs.tag }}
