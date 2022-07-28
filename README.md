@@ -44,7 +44,7 @@ variable.
 1. Create a Dockerfile with the following contents:
 
    ```dockerfile
-   FROM renegademaster/steamcmd-minimal:<tag>
+   FROM docker.io/renegademaster/steamcmd-minimal:<tag>
    
    # Add your own instructions here
    ```
@@ -54,30 +54,30 @@ variable.
     * Install the game by adding additional Docker `RUN` instructions to the Dockerfile:
 
         ```dockerfile
-        FROM renegademaster/steamcmd-minimal:<tag>
+        FROM docker.io/renegademaster/steamcmd-minimal:<tag>
         
         # Download the Satisfactory Dedicated Server
-        RUN ${STEAM_PATH} +login anonymous +app_update 1690800 validate +quit
+        RUN steamcmd.sh +login anonymous +app_update 1690800 validate +quit
         ```
 
     * Alternatively, you can create a Steam CMD script and copy it into the `/home/steam` directory. This script can
       then be run when the container is started:
 
         ```dockerfile
-        FROM renegademaster/steamcmd-minimal:<tag>
+        FROM docker.io/renegademaster/steamcmd-minimal:<tag>
         
         # Copy the steamcmd script into the container
         COPY install.scmd /home/steam/install.scmd
       
         # Run the steamcmd script
-        ENTRYPOINT ${STEAM_PATH} +runscript install.scmd
+        ENTRYPOINT steamcmd.sh +runscript install.scmd
         ```
 
     * Lastly, you can always create a Shell Script and copy it into the container to handle running more complex 
       commands:
 
         ```dockerfile
-        FROM renegademaster/steamcmd-minimal:<tag>
+        FROM docker.io/renegademaster/steamcmd-minimal:<tag>
        
         # Copy the steamcmd script into the container
         COPY setup_script.sh /home/steam/setup_script.sh
