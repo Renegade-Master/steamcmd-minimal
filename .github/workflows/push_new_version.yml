@@ -24,11 +24,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Login to Git
-        run: |
-          git config user.name "${{ secrets.GH_USERNAME }}"
-          git config user.email "${{ secrets.GH_EMAIL }}"
-
       - name: GitHub Tag
         uses: mathieudutour/github-tag-action@v6.0
         with:
