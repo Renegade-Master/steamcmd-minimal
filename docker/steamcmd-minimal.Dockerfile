@@ -48,7 +48,7 @@ LABEL com.renegademaster.steamcmd-minimal.authors="Renegade-Master" \
     com.renegademaster.steamcmd-minimal.source-repository="https://github.com/Renegade-Master/steamcmd-minimal" \
     com.renegademaster.steamcmd-minimal.image-repository="https://hub.docker.com/repository/docker/renegademaster/steamcmd-minimal"
 
-COPY --from=outdead/rcon:0.10.2 /rcon /bin/rcon
+COPY --from=docker.io/outdead/rcon:0.10.2 /rcon /bin/rcon
 
 # Set local working directory
 WORKDIR /home/steam
@@ -60,7 +60,7 @@ RUN apt-get update && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the Steam installation from the previous build stage
-COPY --from=downloader /app /home/steam
+COPY --from=downloader /app/ /usr/bin/
 
 # Copy only the essential libraries required for Steam to function
 COPY --from=downloader [ \
@@ -70,8 +70,6 @@ COPY --from=downloader [ \
 ]
 
 # Link the libraries and executables so that they can be found
-# Make a Steam User, and change the ownership of the Steam directory
-RUN mkdir -p /home/steam/.steam/sdk64 \
+RUN mkdir -p /home/steam/.steam/sdk64 /usr/bin/linux32/ \
     && ln -s /usr/lib/i386-linux-gnu/libSDL2-2.0.so.0.22.0 /usr/lib/i386-linux-gnu/libSDL2-2.0.so.0 \
-    && ln -s /home/steam/linux64/steamclient.so /home/steam/.steam/sdk64/steamclient.so \
-    && ln -s /home/steam/steamcmd.sh /usr/bin/steamcmd.sh
+    && ln -s /home/steam/linux64/steamclient.so /home/steam/.steam/sdk64/steamclient.so
