@@ -63,7 +63,7 @@ jobs:
           docker login -u ${{ secrets.QUAY_USER }} -p ${{ secrets.QUAY_TOKEN }} quay.io
 
       - name: Start Local Container Registry
-        run: podman run --detach --publish 5000:5000 --name registry docker.io/registry
+        run: podman run --rm --detach --publish 5000:5000 --name registry docker.io/registry
 
       - name: Build the Image
         run: |
@@ -95,7 +95,7 @@ jobs:
           if [[ "${{ github.event.inputs.dryrun }}" == "false" ]]; then
             printf "Pushing Image Tags\n"
 
-            skopeo copy \
+            skopeo copy --src-tls-verify=false \
               docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
               docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
               --additional-tag docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:${{ github.event.inputs.tag }} \
@@ -107,16 +107,16 @@ jobs:
             printf "DryRun. Not pushing Git Tags. Printing commands...\n"
 
             command=$(cat << EOF
-            skopeo copy
-              docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}
-              docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}
-              --additional-tag docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:${{ github.event.inputs.tag }}
-              --additional-tag docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }}
-              --additional-tag docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest
-              --additional-tag docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:latest
-              --additional-tag docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:latest
-            EOF
-            )
+          skopeo copy --src-tls-verify=false
+            docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}
+            docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}
+            --additional-tag docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:${{ github.event.inputs.tag }}
+            --additional-tag docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }}
+            --additional-tag docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest
+            --additional-tag docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:latest
+            --additional-tag docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:latest
+          EOF
+          )
 
             printf "%s\n" "${command}"
           fi
