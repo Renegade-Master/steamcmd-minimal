@@ -97,41 +97,53 @@ jobs:
 
             printf "Pushing GitHub Image...\n"
             skopeo copy --src-tls-verify=false --dest-creds ${{ secrets.GH_USER }}:${{ secrets.GITHUB_TOKEN }} \
-                --additional-tag docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest
               docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
               docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}
+            skopeo copy --src-tls-verify=false --dest-creds ${{ secrets.GH_USER }}:${{ secrets.GITHUB_TOKEN }} \
+              docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
+              docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest
 
             printf "Pushing DockerHub Image...\n"
             skopeo copy --src-tls-verify=false --dest-creds ${{ secrets.DOCKER_USER }}:${{ secrets.DOCKER_TOKEN }} \
-                --additional-tag docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:latest
               docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
               docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:${{ github.event.inputs.tag }}
+            skopeo copy --src-tls-verify=false --dest-creds ${{ secrets.DOCKER_USER }}:${{ secrets.DOCKER_TOKEN }} \
+              docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
+              docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:latest
 
             printf "Pushing Quay Image...\n"
             skopeo copy --src-tls-verify=false --dest-creds ${{ secrets.QUAY_USER }}:${{ secrets.QUAY_TOKEN }} \
-                --additional-tag docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:latest
               docker://localhost:5000/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }} \
               docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }}
+            skopeo copy --src-tls-verify=false --dest-creds ${{ secrets.QUAY_USER }}:${{ secrets.QUAY_TOKEN }} \
+              docker://localhost:5000/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }} \
+              docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:latest
           else
             printf "DryRun. Not pushing Git Tags. Printing commands...\n"
 
             command=$(cat << EOF
           skopeo copy --src-tls-verify=false --dest-creds ${{ secrets.GH_USER }}:${{ secrets.GITHUB_TOKEN }} \
-              --additional-tag docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest
             docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
             docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}
+          skopeo copy --src-tls-verify=false --dest-creds ${{ secrets.GH_USER }}:${{ secrets.GITHUB_TOKEN }} \
+              docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
+              docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest
 
           printf "Pushing DockerHub Image...\n"
           skopeo copy --src-tls-verify=false --dest-creds ${{ secrets.DOCKER_USER }}:${{ secrets.DOCKER_TOKEN }} \
-              --additional-tag docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:latest
             docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
             docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:${{ github.event.inputs.tag }}
+          skopeo copy --src-tls-verify=false --dest-creds ${{ secrets.DOCKER_USER }}:${{ secrets.DOCKER_TOKEN }} \
+              docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
+              docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:latest
 
           printf "Pushing Quay Image...\n"
           skopeo copy --src-tls-verify=false --dest-creds ${{ secrets.QUAY_USER }}:${{ secrets.QUAY_TOKEN }} \
-              --additional-tag docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:latest
             docker://localhost:5000/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }} \
             docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }}
+          skopeo copy --src-tls-verify=false --dest-creds ${{ secrets.QUAY_USER }}:${{ secrets.QUAY_TOKEN }} \
+              docker://localhost:5000/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }} \
+              docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:latest
           EOF
           )
 
