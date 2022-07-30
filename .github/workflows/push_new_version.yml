@@ -12,6 +12,14 @@ on:
         required: true
         type: boolean
         default: true
+      builder:
+        description: "The builder to use for the new Tag"
+        required: true
+        type: string
+        options:
+          - buildah
+          - docker
+        default: "buildah"
 
 defaults:
   run:
@@ -54,45 +62,64 @@ jobs:
           docker login -u ${{ secrets.DOCKER_USER }} -p ${{ secrets.DOCKER_TOKEN }} docker.io
           docker login -u ${{ secrets.QUAY_USER }} -p ${{ secrets.QUAY_TOKEN }} quay.io
 
-      - name: Buildah Build
+      - name: Start Local Container Registry
+        run: podman run --detach --publish 5000:5000 --name registry docker.io/registry
+
+      - name: Build the Image
         run: |
-          buildah bud \
-          --file docker/steamcmd-minimal.Dockerfile \
-          --tag ghcr.io/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
-          .
+          if [[ ${{ github.event.inputs.builder }} == "buildah" ]]; then
+            buildah bud \
+              --file docker/steamcmd-minimal.Dockerfile \
+              --tag localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
+              .
+          elif [[ ${{ github.event.inputs.builder }} == "docker" ]]; then
+            docker build \
+              --file docker/steamcmd-minimal.Dockerfile \
+              --tag localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
+              .
+          fi
 
-      - name: ReTag Image
+      - name: Push the Image to Local Container Registry
         run: |
-          buildah tag ghcr.io/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest
+          if [[ ${{ github.event.inputs.builder }} == "buildah" ]]; then
+            buildah push localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}
+          elif [[ ${{ github.event.inputs.builder }} == "docker" ]]; then
+            docker push localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}
+          fi
 
-          buildah tag ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest docker.io/${{ steps.variables.outputs.dkimagepath }}:${{ github.event.inputs.tag }}
-          buildah tag ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest quay.io/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }}
-
-          buildah tag ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest docker.io/${{ steps.variables.outputs.dkimagepath }}:latest
-          buildah tag ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest quay.io/${{ steps.variables.outputs.qyimagepath }}:latest
+      - name: Inspect the Image
+        run: skopeo inspect docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}
 
       - name: Push new Image Tags
         run: |
           if [[ "${{ github.event.inputs.dryrun }}" == "false" ]]; then
             printf "Pushing Image Tags\n"
 
-            buildah push ghcr.io/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}
-            buildah push ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest
-
-            buildah push docker.io/${{ steps.variables.outputs.dkimagepath }}:${{ github.event.inputs.tag }}
-            buildah push docker.io/${{ steps.variables.outputs.dkimagepath }}:latest
-
-            buildah push quay.io/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }}
-            buildah push quay.io/${{ steps.variables.outputs.qyimagepath }}:latest
+            skopeo copy \
+              docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
+              docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
+              --additional-tag docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:${{ github.event.inputs.tag }} \
+              --additional-tag docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }} \
+              --additional-tag docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest \
+              --additional-tag docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:latest \
+              --additional-tag docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:latest
           else
-            printf "DryRun. Not pushing Git Tags. Printing commands...\n"          
+            printf "DryRun. Not pushing Git Tags. Printing commands...\n"
 
-            printf "buildah push ghcr.io/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}\n"
-            printf "buildah push ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest\n"
+            command=$(cat << EOF
+            skopeo copy
+              docker://localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}
+              docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}
+              --additional-tag docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:${{ github.event.inputs.tag }}
+              --additional-tag docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }}
+              --additional-tag docker://ghcr.io/${{ steps.variables.outputs.ghimagepath }}:latest
+              --additional-tag docker://docker.io/${{ steps.variables.outputs.dkimagepath }}:latest
+              --additional-tag docker://quay.io/${{ steps.variables.outputs.qyimagepath }}:latest
+            EOF
+            )
 
-            printf "buildah push docker.io/${{ steps.variables.outputs.dkimagepath }}:${{ github.event.inputs.tag }}\n"
-            printf "buildah push docker.io/${{ steps.variables.outputs.dkimagepath }}:latest\n"
-
-            printf "buildah push quay.io/${{ steps.variables.outputs.qyimagepath }}:${{ github.event.inputs.tag }}\n"
-            printf "buildah push quay.io/${{ steps.variables.outputs.qyimagepath }}:latest\n"
+            printf "%s\n" "${command}"
           fi
+
+      - name: Stop the Local Container Registry
+        run: podman stop registry
