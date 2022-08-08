@@ -49,7 +49,7 @@ jobs:
       run: |
         docker build \
         --file docker/steamcmd-minimal.Dockerfile \
-        --tag renegademaster/steamcmd-minimal:${{ steps.variables.outputs.datetime }} \
+        --tag docker.io/renegademaster/steamcmd-minimal:${{ steps.variables.outputs.datetime }} \
         .
 
     - name: Test Run the Docker Image
@@ -61,8 +61,8 @@ jobs:
         docker run \
           --rm \
           --name steamcmd-minimal \
-          renegademaster/steamcmd-minimal:${{ steps.variables.outputs.datetime }} \
-          steamcmd.sh && rcon -a 127.0.0.1:9999 -p pass help \
+          docker.io/renegademaster/steamcmd-minimal:${{ steps.variables.outputs.datetime }} \
+          "steamcmd.sh && rcon -a 127.0.0.1:9999 -p pass help" \
           2>&1 | tee --append ./docker-log.log
 
     - name: Upload Docker Logs
