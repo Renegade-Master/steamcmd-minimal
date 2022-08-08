@@ -62,7 +62,7 @@ jobs:
           --rm \
           --name steamcmd-minimal \
           docker.io/renegademaster/steamcmd-minimal:${{ steps.variables.outputs.datetime }} bash -c \
-          "steamcmd.sh && rcon -a 127.0.0.1:9999 -p pass help" \
+          "steamcmd.sh +login anonymous +quit && rcon -a 127.0.0.1:9999 -p pass help" \
           2>&1 | tee --append ./docker-log.log
 
     - name: Upload Docker Logs
