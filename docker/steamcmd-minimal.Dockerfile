@@ -48,7 +48,7 @@ LABEL com.renegademaster.steamcmd-minimal.authors="Renegade-Master" \
     com.renegademaster.steamcmd-minimal.source-repository="https://github.com/Renegade-Master/steamcmd-minimal" \
     com.renegademaster.steamcmd-minimal.image-repository="https://hub.docker.com/repository/docker/renegademaster/steamcmd-minimal"
 
-COPY --from=docker.io/outdead/rcon:0.10.2 /rcon /bin/rcon
+COPY --from=docker.io/outdead/rcon:0.10.2 /rcon /usr/bin/rcon
 
 # Set local working directory
 WORKDIR /home/steam
@@ -56,7 +56,7 @@ WORKDIR /home/steam
 # Install Steam dependencies, and trim image bloat
 RUN apt-get update && apt-get autoremove -y \
     && apt-get install -y --no-install-recommends \
-        lib32stdc++6 ca-certificates \
+        lib32stdc++6 ca-certificates musl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the Steam installation from the previous build stage

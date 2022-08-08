@@ -1,0 +1,117 @@
+#
+#   Project Zomboid Dedicated Server using SteamCMD Docker Image.
+#   Copyright (C) 2021-2022 Renegade-Master [renegade.master.dev@protonmail.com]
+#
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
+name: Build and Test Server Image
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  build-and-run:
+    name: Build and Run
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set Variables
+      id: variables
+      run: |
+        echo "::set-output name=datetime::$(date +%Y%m%dT%H%M%SZ)"
+        echo "::set-output name=userid::$(id -u)"
+        echo "::set-output name=groupid::$(id -g)"
+
+    - name: Build the Docker Image
+      if: ${{ success() }}
+      run: |
+        docker build \
+        --file docker/steamcmd-minimal.Dockerfile \
+        --tag docker.io/renegademaster/steamcmd-minimal:${{ steps.variables.outputs.datetime }} \
+        .
+
+    - name: Test Run the Docker Image
+      if: ${{ success() }}
+      continue-on-error: true
+      timeout-minutes: 2
+      run: |        
+        # Run the Docker Image
+        docker run \
+          --rm \
+          --name steamcmd-minimal \
+          docker.io/renegademaster/steamcmd-minimal:${{ steps.variables.outputs.datetime }} bash -c \
+          "steamcmd.sh +login anonymous +quit && rcon -a 127.0.0.1:9999 -p pass help" \
+          2>&1 | tee --append ./docker-log.log
+
+    - name: Upload Docker Logs
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: docker-logs
+        path: |
+          docker-log.log
+
+  test:
+    name: Test Server
+    runs-on: ubuntu-latest
+    needs:
+    - build-and-run
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Download Docker Logs
+      uses: actions/download-artifact@v2
+      with:
+        name: docker-logs
+
+    - name: Test - Find Positive Log Entries
+      run: |
+        check_for_config() {
+          if ! grep -q -iE "$1" "./docker-log.log"; then
+            printf "Could not find %s in %s\n" "$1" "./docker-log.log"
+            exit 1
+          else
+            printf "Found %s in %s\n" "$1" "./docker-log.log"
+          fi
+        }
+
+        check_for_config "Connecting anonymously to Steam Public...OK"
+        check_for_config "Waiting for client config...OK"
+        check_for_config "Waiting for user info...OK"
+        check_for_config "rcon: dial tcp 127.0.0.1:9999: connect: connection refused"
+
+    - name: Test - Ensure No Negative Log Entries
+      run: |
+        check_for_config() {
+          if ! grep -q -iE "$1" "./docker-log.log"; then
+            printf "Could not find %s in %s\n" "$1" "./docker-log.log"
+          else
+            printf "Found %s in %s\n" "$1" "./docker-log.log"
+            exit 1
+          fi
+        }
+        
+        check_for_config "/usr/bin/rcon: No such file or directory"
