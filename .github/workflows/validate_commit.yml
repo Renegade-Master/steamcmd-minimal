@@ -67,7 +67,7 @@ jobs:
 
     - name: Upload Docker Logs
       if: ${{ always() }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: docker-logs
         path: |
@@ -83,7 +83,7 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Download Docker Logs
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: docker-logs
 
