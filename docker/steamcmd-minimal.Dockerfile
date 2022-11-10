@@ -22,6 +22,7 @@
 
 # Base Image
 ARG BASE_IMAGE="docker.io/ubuntu:kinetic-20220602"
+ARG RCON_IMAGE="docker.io/outdead/rcon:0.10.2"
 ARG UID=1000
 ARG USER=steam
 
@@ -48,41 +49,47 @@ RUN wget "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz
 FROM ${BASE_IMAGE} as installer
 ARG UID
 ARG USER
+ARG RCON_IMAGE
 
-ENV USER=${USER}
+ENV USER="${USER}"
+ENV STEAMDIR="/home/${USER}/.local/steamcmd"
 
 # Add label metadata
 LABEL com.renegademaster.steamcmd-minimal.authors="Renegade-Master" \
     com.renegademaster.steamcmd-minimal.source-repository="https://github.com/Renegade-Master/steamcmd-minimal" \
     com.renegademaster.steamcmd-minimal.image-repository="https://hub.docker.com/repository/docker/renegademaster/steamcmd-minimal"
 
-COPY --from=docker.io/outdead/rcon:0.10.2 /rcon /usr/bin/rcon
+COPY --from=${RCON_IMAGE} /rcon /usr/bin/rcon
 
-# Install Steam dependencies, and trim image bloat
+# Install Steam dependencies, trim image bloat
 RUN apt-get update && apt-get autoremove -y \
     && apt-get install -y --no-install-recommends \
         ca-certificates=20211016 \
         lib32stdc++6=12.2.0-3ubuntu1 \
         musl=1.2.3-1 \
-    && rm -rf /var/lib/apt/lists/* \
-    && useradd -u "${UID}" -m "${USER}"
+    && apt-get remove --purge --auto-remove -y \
+    && rm -rf /var/lib/apt/lists/*
 
-USER ${USER}
-
-# Set local working directory
-WORKDIR /home/steam
+# Create non-root user
+RUN useradd "${USER}" --create-home \
+        --uid "${UID}" \
+        --home-dir /home/${USER}
 
 # Copy the Steam installation from the previous build stage
-COPY --from=downloader --chown=$UID /app/ /usr/bin/
+COPY --from=downloader --chown=${UID} /app/ ${STEAMDIR}
 
 # Copy only the essential libraries required for Steam to function
-COPY --from=downloader --chown=$UID [ \
+COPY --from=downloader [ \
     "/usr/lib/i386-linux-gnu/libthread_db.so.1", \
     "/usr/lib/i386-linux-gnu/libSDL2-2.0.so.0.2400.0", \
     "/usr/lib/i386-linux-gnu/" \
 ]
 
 # Link the libraries and executables so that they can be found
-RUN mkdir -p /home/steam/.steam/sdk64 /usr/bin/linux32/ \
+RUN mkdir -p /home/steam/.steam/sdk64 \
     && ln -s /usr/lib/i386-linux-gnu/libSDL2-2.0.so.0.2400.0 /usr/lib/i386-linux-gnu/libSDL2-2.0.so.0 \
     && ln -s /home/steam/linux64/steamclient.so /home/steam/.steam/sdk64/steamclient.so
+
+# Set local working directory
+WORKDIR /home/${USER}
+USER ${USER}
