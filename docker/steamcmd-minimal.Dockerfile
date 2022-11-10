@@ -22,6 +22,8 @@
 
 # Base Image
 ARG BASE_IMAGE="docker.io/ubuntu:kinetic-20220602"
+ARG UID=1000
+ARG USER=steam
 
 # Download a small base image to start with
 FROM ${BASE_IMAGE} as downloader
@@ -29,8 +31,10 @@ FROM ${BASE_IMAGE} as downloader
 # Install Steam dependencies
 RUN dpkg --add-architecture i386 \
     && apt-get update && apt-get autoremove -y \
-    && apt-get install -y \
-        wget libsdl2-2.0-0:i386
+    && apt-get install -y --no-install-recommends \
+        ca-certificates=20211016 \
+        ibsdl2-2.0-0:i386=2.24.0+dfsg-1 \
+        wget=1.21.3-1ubuntu1
 
 # Set local working directory
 WORKDIR /app
@@ -42,6 +46,10 @@ RUN wget "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz
 
 # Start again with a small base image
 FROM ${BASE_IMAGE} as installer
+ARG UID
+ARG USER
+
+ENV USER=${USER}
 
 # Add label metadata
 LABEL com.renegademaster.steamcmd-minimal.authors="Renegade-Master" \
@@ -50,26 +58,31 @@ LABEL com.renegademaster.steamcmd-minimal.authors="Renegade-Master" \
 
 COPY --from=docker.io/outdead/rcon:0.10.2 /rcon /usr/bin/rcon
 
-# Set local working directory
-WORKDIR /home/steam
-
 # Install Steam dependencies, and trim image bloat
 RUN apt-get update && apt-get autoremove -y \
     && apt-get install -y --no-install-recommends \
-        lib32stdc++6 ca-certificates musl \
-    && rm -rf /var/lib/apt/lists/*
+        ca-certificates=20211016 \
+        lib32stdc++6=12.2.0-3ubuntu1 \
+        musl=1.2.3-1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -u "${UID}" -m "${USER}"
+
+USER ${USER}
+
+# Set local working directory
+WORKDIR /home/steam
 
 # Copy the Steam installation from the previous build stage
-COPY --from=downloader /app/ /usr/bin/
+COPY --from=downloader --chown=$UID /app/ /usr/bin/
 
 # Copy only the essential libraries required for Steam to function
-COPY --from=downloader [ \
+COPY --from=downloader --chown=$UID [ \
     "/usr/lib/i386-linux-gnu/libthread_db.so.1", \
-    "/usr/lib/i386-linux-gnu/libSDL2-2.0.so.0.22.0", \
+    "/usr/lib/i386-linux-gnu/libSDL2-2.0.so.0.2400.0", \
     "/usr/lib/i386-linux-gnu/" \
 ]
 
 # Link the libraries and executables so that they can be found
 RUN mkdir -p /home/steam/.steam/sdk64 /usr/bin/linux32/ \
-    && ln -s /usr/lib/i386-linux-gnu/libSDL2-2.0.so.0.22.0 /usr/lib/i386-linux-gnu/libSDL2-2.0.so.0 \
+    && ln -s /usr/lib/i386-linux-gnu/libSDL2-2.0.so.0.2400.0 /usr/lib/i386-linux-gnu/libSDL2-2.0.so.0 \
     && ln -s /home/steam/linux64/steamclient.so /home/steam/.steam/sdk64/steamclient.so
