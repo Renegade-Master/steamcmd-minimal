@@ -26,6 +26,7 @@ ARG RCON_IMAGE="docker.io/outdead/rcon:0.10.2"
 ARG UID=1000
 ARG GID=1000
 ARG USER=steam
+ARG TZ=UTC
 
 FROM ${RCON_IMAGE} as rcon
 
@@ -50,14 +51,16 @@ RUN wget "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz
 
 # Start again with a small base image
 FROM ${BASE_IMAGE} as installer
+ARG RCON_IMAGE
 ARG UID
 ARG GID
 ARG USER
-ARG RCON_IMAGE
+ARG TZ
 
 ENV USER="${USER}"
 ENV STEAMDIR="/home/${USER}/.local/steamcmd"
 ENV PATH="$STEAMDIR:$PATH"
+ENV TZ="${TZ}"
 
 # Add label metadata
 LABEL com.renegademaster.steamcmd-minimal.authors="Renegade-Master" \
@@ -72,6 +75,7 @@ RUN apt-get update && apt-get autoremove -y \
         ca-certificates=20211016 \
         lib32stdc++6=12.2.0-3ubuntu1 \
         musl=1.2.3-1 \
+        tzdata=2022g-0ubuntu0.22.10.1 \
     && apt-get remove --purge --auto-remove -y \
     && rm -rf /var/lib/apt/lists/*
 
