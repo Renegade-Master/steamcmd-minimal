@@ -57,6 +57,7 @@ ARG RCON_IMAGE
 
 ENV USER="${USER}"
 ENV STEAMDIR="/home/${USER}/.local/steamcmd"
+ENV PATH="$STEAMDIR:$PATH"
 
 # Add label metadata
 LABEL com.renegademaster.steamcmd-minimal.authors="Renegade-Master" \
