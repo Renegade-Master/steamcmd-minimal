@@ -21,9 +21,10 @@
 #######################################################################
 
 # Base Image
-ARG BASE_IMAGE="docker.io/ubuntu:kinetic-20220602"
+ARG BASE_IMAGE="docker.io/ubuntu:kinetic-20230126"
 ARG RCON_IMAGE="docker.io/outdead/rcon:0.10.2"
 ARG UID=1000
+ARG GID=1000
 ARG USER=steam
 
 # Download a small base image to start with
@@ -33,7 +34,7 @@ FROM ${BASE_IMAGE} as downloader
 RUN dpkg --add-architecture i386 \
     && apt-get update && apt-get autoremove -y \
     && apt-get install -y --no-install-recommends \
-        ca-certificates=20211016 \
+        ca-certificates=20211016ubuntu0.22.10.1 \
         ibsdl2-2.0-0:i386=2.24.0+dfsg-1 \
         wget=1.21.3-1ubuntu1
 
@@ -48,6 +49,7 @@ RUN wget "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz
 # Start again with a small base image
 FROM ${BASE_IMAGE} as installer
 ARG UID
+ARG GID
 ARG USER
 ARG RCON_IMAGE
 
@@ -70,13 +72,21 @@ RUN apt-get update && apt-get autoremove -y \
     && apt-get remove --purge --auto-remove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN useradd "${USER}" --create-home \
+# Create runtime user
+RUN if [ $USER != "root" ]; then \
+      printf "Running as standard user"; \
+      groupadd "${USER}" \
+        --gid "${GID}"; \
+      useradd "${USER}" --create-home \
         --uid "${UID}" \
-        --home-dir /home/${USER}
+        --gid "${GID}" \
+        --home-dir /home/${USER}; \
+    else \
+      printf "Running as root user"; \
+    fi
 
 # Copy the Steam installation from the previous build stage
-COPY --from=downloader --chown=${UID} /app/ ${STEAMDIR}
+COPY --from=downloader --chown=${UID}:${GID} /app/ ${STEAMDIR}
 
 # Copy only the essential libraries required for Steam to function
 COPY --from=downloader [ \
