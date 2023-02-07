@@ -27,6 +27,8 @@ ARG UID=1000
 ARG GID=1000
 ARG USER=steam
 
+FROM ${RCON_IMAGE} as rcon
+
 # Download a small base image to start with
 FROM ${BASE_IMAGE} as downloader
 
@@ -61,7 +63,7 @@ LABEL com.renegademaster.steamcmd-minimal.authors="Renegade-Master" \
     com.renegademaster.steamcmd-minimal.source-repository="https://github.com/Renegade-Master/steamcmd-minimal" \
     com.renegademaster.steamcmd-minimal.image-repository="https://hub.docker.com/repository/docker/renegademaster/steamcmd-minimal"
 
-COPY --from=${RCON_IMAGE} /rcon /usr/bin/rcon
+COPY --from=rcon /rcon /usr/bin/rcon
 
 # Install Steam dependencies, trim image bloat
 RUN apt-get update && apt-get autoremove -y \
