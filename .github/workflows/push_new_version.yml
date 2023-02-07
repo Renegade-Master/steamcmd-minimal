@@ -73,20 +73,21 @@ jobs:
               --tag localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
               .
 
-            sed 's|USER \${USER}|USER 0|g' docker/steamcmd-minimal.Dockerfile
             buildah bud \
               --file docker/steamcmd-minimal.Dockerfile \
+              --build-arg UID=0 --build-arg GID=0 --build-arg USER=root \
               --tag localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}-root \
               .
+
           elif [[ ${{ github.event.inputs.builder }} == "docker" ]]; then
             docker build \
               --file docker/steamcmd-minimal.Dockerfile \
               --tag localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }} \
               .
 
-            sed 's|USER \${USER}|USER 0|g' docker/steamcmd-minimal.Dockerfile
             docker build \
               --file docker/steamcmd-minimal.Dockerfile \
+              --build-arg UID=0 --build-arg GID=0 --build-arg USER=root \
               --tag localhost:5000/${{ steps.variables.outputs.ghimagepath }}:${{ github.event.inputs.tag }}-root \
               .
           fi
